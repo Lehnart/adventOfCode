@@ -19,7 +19,12 @@ arrangements = 0
 with open("input.txt") as file:
     for line_number, line in enumerate(file):
         line, raw_groups = line.strip().split(" ")
+        unfolded_line = line
+        for _ in range(4):
+            unfolded_line = unfolded_line + "?" + line
+        line = unfolded_line
         groups = [int(c) for c in raw_groups.split(",")]
+        groups = groups * 5
         question_index = [index for index, c in enumerate(line) if c == "?"]
         sharp_count = sum([1 for index, c in enumerate(line) if c == "#"])
         sharp_expected_count = sum(groups)
