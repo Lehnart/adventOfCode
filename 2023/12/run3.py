@@ -1,49 +1,36 @@
-import itertools
+from functools import cache
+
+with open("input.txt") as f:
+    ws = [l.split() for l in f.read().strip().split("\n")]
 
 
-def count_groups(line):
-    groups = []
-    is_in_group = False
-    for c in line:
+@cache
+def num_solutions(s, sizes, num_done_in_group=0):
+    if not s:
+        # Is this a solution? Did we handle and close all groups?
+        return not sizes and not num_done_in_group
+    num_sols = 0
+    # If next letter is a "?", we branch
+    possible = [".", "#"] if s[0] == "?" else s[0]
+    for c in possible:
         if c == "#":
-            if not is_in_group:
-                groups.append(0)
-                is_in_group = True
-            groups[-1] += 1
+            # Extend current group
+            num_sols += num_solutions(s[1:], sizes, num_done_in_group + 1)
         else:
-            is_in_group = False
-    return groups
+            if num_done_in_group:
+                # If we were in a group that can be closed, close it
+                if sizes and sizes[0] == num_done_in_group:
+                    num_sols += num_solutions(s[1:], sizes[1:])
+            else:
+                # If we are not in a group, move on to next symbol
+                num_sols += num_solutions(s[1:], sizes)
+    return num_sols
 
 
-def count_arrangement(current_line, line, expected_groups):
-    while len(current_line) != len(line) and line[len(current_line)] != "?":
-        current_line = current_line + line[len(current_line)]
+rows = [(w1, tuple(map(int, w2.split(",")))) for w1, w2 in ws]
 
-    current_groups = count_groups(current_line)
-    if len(current_groups) > len(expected_groups):
-        return 0
-    if len(current_groups) == len(expected_groups):
-        return 1 if current_groups == expected_groups else 0
+# Part 1
+print(sum(num_solutions(group + ".", sizes) for group, sizes in rows))
 
-    for index in range(len(current_groups) - 1):
-        if current_groups[index] != expected_groups[index]:
-            return 0
-
-    if len(current_groups)>0 and current_groups[-1] > expected_groups[-1]:
-        return 0
-
-    return count_arrangement(current_line + "#", line, expected_groups) + count_arrangement(current_line + ".", line, expected_groups)
-
-
-arrangements = 0
-with open("input.txt") as file:
-    for line_number, line in enumerate(file):
-        line, raw_groups = line.strip().split(" ")
-        groups = [int(c) for c in raw_groups.split(",")]
-        question_index = [index for index, c in enumerate(line) if c == "?"]
-        sharp_count = sum([1 for index, c in enumerate(line) if c == "#"])
-        sharp_expected_count = sum(groups)
-        print(line_number, line)
-
-        arrangements += count_arrangement("", line, groups)
-        print(arrangements)
+# Part 2
+print(sum(num_solutions("?".join([group] * 5) + ".", sizes * 5) for group, sizes in rows))
